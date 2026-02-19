@@ -56,7 +56,7 @@ taskForm.onsubmit = (e) => {
         completed: false,
         createdAt: new Date().toISOString()
     };
-    
+
     activities.unshift(newTask);
     saveAndRefresh();
     taskForm.reset();
@@ -71,7 +71,7 @@ btnProcessImport.onclick = () => {
     // Pattern matching for activities (Simplified example)
     // Looking for strings like "Tarefa: XXX", "Prazo: XX/XX", etc.
     const newItems = parseActivitiesFromText(rawData);
-    
+
     if (newItems.length > 0) {
         activities = [...newItems, ...activities];
         saveAndRefresh();
@@ -85,41 +85,49 @@ btnProcessImport.onclick = () => {
 function parseActivitiesFromText(text) {
     const lines = text.split('\n');
     const detected = [];
-    
-    // Simple logic: If it looks like a Moodle "Tarefa" or similar
-    // We can iterate and try to find correlations.
-    // For now, let's look for common keywords in Brazilian LMS
-    
-    // Heuristic: Many LMS show activities in rows. 
-    // We'll try to find sequences that look like (Subject -> Task -> Date)
-    
-    // Mocking a simple line-by-line check
-    // If we find a date-like string and a title-like string
-    
-    const dateRegex = /(\d{2})[\/\- ](\d{2})[\/\- ](\d{2,4})/;
-    
+
+    // Heuristic: Detecting patterns from Belas Artes screenshots
+    // Keywords for activities/deadlines
+    const activityKeywords = ['Atividade', 'Prova', 'Entrega', 'Trabalho', 'Avaliação', 'Projeto', 'Mentoria', 'Slide'];
+    const dateRegex = /(\d{2})[\/\- ](\d{2})[\/\- ]?(\d{2,4})?/;
+
     let currentSubject = "Geral";
-    
+
+    // Attempt to extract subject from lines like "PP.20261... | NOME DA DISCIPLINA"
+    const subjectRegex = /PP\.\d{5}\..*?\|\s*(.*)/i;
+
     lines.forEach(line => {
         const trimmed = line.trim();
         if (trimmed.length < 3) return;
-        
-        // If line is short and uppercase, might be a subject
-        if (trimmed.length < 30 && trimmed === trimmed.toUpperCase() && !dateRegex.test(trimmed)) {
-            currentSubject = trimmed;
+
+        // Match subject name
+        const subMatch = trimmed.match(subjectRegex);
+        if (subMatch) {
+            currentSubject = subMatch[1].trim();
+            return;
         }
 
+        const hasKeyword = activityKeywords.some(key => trimmed.toLowerCase().includes(key.toLowerCase()));
         const dateMatch = trimmed.match(dateRegex);
-        if (dateMatch) {
-            // It's a task if it has a date and some text
-            const title = trimmed.replace(dateRegex, '').replace(/Prazo|Vencimento|Atividade|Tarefa/gi, '').trim();
-            if (title.length > 3) {
+
+        if (hasKeyword || dateMatch) {
+            let deadline = dateMatch ? formatDateForInput(dateMatch[0]) : new Date().toISOString().split('T')[0];
+
+            // If it's just "Aula X - Slides", it might not be a "deadline" task but a content
+            // We'll mark it as low priority unless "Prova" or "Entrega" is mentioned
+            let priority = 'low';
+            if (/prova|entrega|trabalho|avaliação/i.test(trimmed)) priority = 'high';
+            else if (/projeto|atividade/i.test(trimmed)) priority = 'medium';
+
+            // Clean title
+            let title = trimmed.replace(dateRegex, '').replace(/[|•-]/g, '').trim();
+            if (title.length > 5) {
                 detected.push({
                     id: Math.random(),
                     title: title,
                     subject: currentSubject,
-                    deadline: formatDateForInput(dateMatch[0]),
-                    priority: 'medium',
+                    deadline: deadline,
+                    priority: priority,
                     completed: false,
                     createdAt: new Date().toISOString()
                 });
@@ -127,7 +135,8 @@ function parseActivitiesFromText(text) {
         }
     });
 
-    return detected;
+    // Deduplicate by title within the same subject
+    return detected.filter((v, i, a) => a.findIndex(t => (t.title === v.title && t.subject === v.subject)) === i);
 }
 
 function formatDateForInput(dateStr) {
@@ -146,12 +155,12 @@ function formatDateForInput(dateStr) {
 // Rendering Logic
 function renderActivities() {
     const query = searchInput.value.toLowerCase();
-    
+
     const filtered = activities.filter(a => {
         const matchesQuery = a.title.toLowerCase().includes(query) || a.subject.toLowerCase().includes(query);
-        const matchesTab = activeFilter === 'all' || 
-                         (activeFilter === 'pending' && !a.completed) || 
-                         (activeFilter === 'completed' && a.completed);
+        const matchesTab = activeFilter === 'all' ||
+            (activeFilter === 'pending' && !a.completed) ||
+            (activeFilter === 'completed' && a.completed);
         return matchesQuery && matchesTab;
     });
 
@@ -202,7 +211,7 @@ function updateStats() {
     const total = activities.length;
     const pending = activities.filter(a => !a.completed).length;
     const completed = activities.filter(a => a.completed).length;
-    
+
     const today = new Date().toISOString().split('T')[0];
     const overdue = activities.filter(a => !a.completed && a.deadline < today).length;
 
