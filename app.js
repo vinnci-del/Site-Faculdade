@@ -1,5 +1,35 @@
 // State Management
-let activities = JSON.parse(localStorage.getItem('activities')) || [];
+const scannedActivities = [
+    {
+        "id": 1740000000001,
+        "title": "Atividade 1 (Trabalho)",
+        "subject": "Inteligência Artificial",
+        "deadline": "2026-03-23",
+        "priority": "medium",
+        "completed": false,
+        "createdAt": new Date().toISOString()
+    },
+    {
+        "id": 1740000000002,
+        "title": "Atividade 1 (Trabalho)",
+        "subject": "Introdução À Publicidade E Propaganda",
+        "deadline": "2026-03-23",
+        "priority": "medium",
+        "completed": false,
+        "createdAt": new Date().toISOString()
+    },
+    {
+        "id": 1740000000003,
+        "title": "Atividade 1 (Trabalho)",
+        "subject": "Gestão Da Propaganda",
+        "deadline": "2026-03-23",
+        "priority": "medium",
+        "completed": false,
+        "createdAt": new Date().toISOString()
+    }
+];
+
+let activities = JSON.parse(localStorage.getItem('activities')) || scannedActivities;
 let activeFilter = 'all';
 
 // DOM Elements
