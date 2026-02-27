@@ -9,7 +9,7 @@ Este workflow automatiza o envio das alterações para o repositório remoto.
 `git add .`
 // turbo
 3. Faz o commit com uma mensagem descritiva.
-`git commit -m "update: sincronização automática das atividades"`
+`git commit -m "feat: redefinição completa do sistema para WorkFlow"`
 // turbo
 4. Envia para o branch principal.
 `git push origin main`
