@@ -1,147 +1,175 @@
-// --- State Management ---
-let tasks = JSON.parse(localStorage.getItem('workflow_tasks')) || [
+// --- Constants & State ---
+let currentUser = JSON.parse(sessionStorage.getItem('uniplan_user')) || null;
+
+let tasks = JSON.parse(localStorage.getItem('uniplan_tasks')) || [
     {
         id: 1,
-        title: "Pesquisa de Mercado - Projeto X",
-        category: "trabalho",
-        priority: "foco",
-        date: "2026-03-05",
-        completed: false
+        title: "Pesquisa Inicial de Referências",
+        owner: "Josué",
+        status: "list-done",
+        priority: "fluxo",
+        createdAt: new Date().toISOString()
     },
     {
         id: 2,
-        title: "Relatórios de IA Belas Artes",
-        category: "faculdade",
+        title: "Definição do Design System",
+        owner: "Membro 2",
+        status: "list-doing",
+        priority: "foco",
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 3,
+        title: "Implementação da API Mock",
+        owner: "Membro 3",
+        status: "list-backlog",
         priority: "urgente",
-        date: "2026-03-02",
-        completed: true
+        createdAt: new Date().toISOString()
     }
 ];
 
-let activeFilter = 'all';
-
 // --- DOM Elements ---
-const tasksList = document.getElementById('tasks-list');
+const authApp = document.getElementById('auth-app');
+const mainApp = document.getElementById('main-app');
+const authForm = document.getElementById('auth-form');
 const taskForm = document.getElementById('task-form');
 const taskModal = document.getElementById('task-modal');
 const btnNewTask = document.getElementById('btn-new-task');
+const btnLogout = document.getElementById('btn-logout');
 const btnCloseModal = document.getElementById('btn-close-modal');
-const filterBtns = document.querySelectorAll('.filter-btn');
-
-// Stats Elements
-const statsTotal = document.getElementById('stats-total');
-const statsProgress = document.getElementById('stats-progress');
-const statsCompleted = document.getElementById('stats-completed');
-const pendingCountText = document.getElementById('pending-count');
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
-    renderTasks();
-    updateStats();
+    checkAuth();
+    renderBoard();
 });
 
-// --- Modal Logic ---
+function checkAuth() {
+    if (currentUser) {
+        authApp.style.display = 'none';
+        mainApp.style.display = 'flex';
+        document.getElementById('current-user-name').textContent = currentUser.name;
+        document.getElementById('current-user-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
+    } else {
+        authApp.style.display = 'flex';
+        mainApp.style.display = 'none';
+    }
+}
+
+// --- Auth Operations ---
+authForm.onsubmit = (e) => {
+    e.preventDefault();
+    const name = document.getElementById('user-id').value;
+    const pass = document.getElementById('group-pass').value;
+
+    // Simple simulation of group access
+    if (pass.length >= 4) {
+        currentUser = { name: name, role: 'membro' };
+        sessionStorage.setItem('uniplan_user', JSON.stringify(currentUser));
+        checkAuth();
+    } else {
+        alert("Senha do grupo incorreta ou muito curta (mínimo 4 caracteres).");
+    }
+};
+
+btnLogout.onclick = () => {
+    sessionStorage.removeItem('uniplan_user');
+    currentUser = null;
+    checkAuth();
+};
+
+// --- Task Modal ---
 btnNewTask.onclick = () => taskModal.classList.add('active');
 btnCloseModal.onclick = () => taskModal.classList.remove('active');
 
-window.onclick = (e) => {
-    if (e.target === taskModal) taskModal.classList.remove('active');
-};
-
-// --- CRUD Operations ---
+// --- Board Operations ---
 taskForm.onsubmit = (e) => {
     e.preventDefault();
 
     const newTask = {
         id: Date.now(),
         title: document.getElementById('task-title').value,
-        category: document.getElementById('task-category').value,
+        owner: document.getElementById('task-owner').value,
         priority: document.getElementById('task-priority').value,
-        date: document.getElementById('task-date').value,
-        completed: false
+        status: 'list-backlog',
+        createdAt: new Date().toISOString()
     };
 
-    tasks.unshift(newTask);
+    tasks.push(newTask);
     saveAndRefresh();
     taskForm.reset();
     taskModal.classList.remove('active');
 };
 
-function toggleTask(id) {
+function moveTask(id, newStatus) {
     const task = tasks.find(t => t.id === id);
     if (task) {
-        task.completed = !task.completed;
+        task.status = newStatus;
         saveAndRefresh();
     }
 }
 
 function deleteTask(id) {
-    tasks = tasks.filter(t => t.id !== id);
-    saveAndRefresh();
+    if (confirm("Tem certeza que deseja excluir esta tarefa do grupo?")) {
+        tasks = tasks.filter(t => t.id !== id);
+        saveAndRefresh();
+    }
 }
 
 function saveAndRefresh() {
-    localStorage.setItem('workflow_tasks', JSON.stringify(tasks));
-    renderTasks();
-    updateStats();
+    localStorage.setItem('uniplan_tasks', JSON.stringify(tasks));
+    renderBoard();
 }
 
 // --- Rendering Logic ---
-function renderTasks() {
-    const filtered = tasks.filter(t => {
-        if (activeFilter === 'all') return true;
-        return t.category === activeFilter;
-    });
+function renderBoard() {
+    const columns = ['list-backlog', 'list-doing', 'list-review', 'list-done'];
 
-    if (filtered.length === 0) {
-        tasksList.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                <p>Nenhum trabalho encontrado nesta categoria.</p>
-            </div>
-        `;
-        return;
-    }
+    columns.forEach(colId => {
+        const listElement = document.getElementById(colId);
+        const columnTasks = tasks.filter(t => t.status === colId);
 
-    tasksList.innerHTML = filtered.map(t => `
-        <div class="task-card ${t.completed ? 'completed' : ''}" data-id="${t.id}">
-            <div class="task-checkbox" onclick="toggleTask(${t.id})">
-                ${t.completed ? '✓' : ''}
-            </div>
-            <div class="task-content">
-                <div class="task-title">${t.title}</div>
-                <div class="task-meta">
-                    <span class="badge ${t.priority}">${t.priority}</span>
-                    <span>📁 ${t.category}</span>
-                    <span>📅 ${formatDate(t.date)}</span>
+        // Update badge count
+        const badge = listElement.previousElementSibling.querySelector('.badge');
+        badge.textContent = columnTasks.length;
+
+        listElement.innerHTML = columnTasks.map(t => `
+            <div class="task-card" draggable="true">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div class="task-title" style="font-size: 0.95rem;">${t.title}</div>
+                    <button onclick="deleteTask(${t.id})" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer;">×</button>
+                </div>
+                
+                <div class="task-tags">
+                    <span class="tag ${t.priority}">${t.priority}</span>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="member-avatar">${t.owner.charAt(0)}</div>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">${t.owner}</span>
+                    </div>
+                    <div class="task-actions">
+                        ${getNextActionButtons(t)}
+                    </div>
                 </div>
             </div>
-            <button onclick="deleteTask(${t.id})" style="background:transparent; border:none; cursor:pointer; font-size: 1.2rem; opacity: 0.5;">🗑️</button>
-        </div>
-    `).join('');
+        `).join('');
+    });
 }
 
-function updateStats() {
-    const total = tasks.length;
-    const completed = tasks.filter(t => t.completed).length;
-    const progress = total - completed;
-
-    statsTotal.textContent = total;
-    statsProgress.textContent = progress;
-    statsCompleted.textContent = completed;
-    pendingCountText.textContent = progress;
-}
-
-function formatDate(dateStr) {
-    const options = { day: '2-digit', month: 'short' };
-    return new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR', options);
-}
-
-// --- Filtering Logic ---
-filterBtns.forEach(btn => {
-    btn.onclick = () => {
-        filterBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        activeFilter = btn.dataset.filter;
-        renderTasks();
+function getNextActionButtons(task) {
+    const statusMap = {
+        'list-backlog': { next: 'list-doing', icon: '▶️', label: 'Iniciar' },
+        'list-doing': { next: 'list-review', icon: '👁️', label: 'Revisar' },
+        'list-review': { next: 'list-done', icon: '✅', label: 'Finalizar' },
+        'list-done': { next: 'list-doing', icon: '↩️', label: 'Retornar' }
     };
-});
+
+    const action = statusMap[task.status];
+    return `<button onclick="moveTask(${task.id}, '${action.next}')" 
+            title="${action.label}" 
+            style="background: var(--bg-glass); border: 1px solid var(--border-glass); border-radius: 4px; padding: 4px 8px; color: var(--text-main); cursor:pointer; font-size: 0.8rem;">
+            ${action.icon}
+        </button>`;
+}

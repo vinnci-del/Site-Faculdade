@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WorkFlow | Organização de Elite</title>
+    <title>UniPlan | Collaborative Project Manager</title>
     <meta name="description"
-        content="Gerencie seus trabalhos acadêmicos e profissionais com uma interface futurista e eficiente.">
+        content="Organize seu grupo acadêmico com o UniPlan. Planejador colaborativo com status e etapas.">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,109 +19,153 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
+<body class="auth-mode">
 
-    <aside class="sidebar">
-        <div class="brand">
-            <div class="brand-icon">⚡</div>
-            <div class="brand-name">Work<span>Flow</span></div>
+    <!-- Auth Screen Overlay -->
+    <div class="auth-overlay" id="auth-app">
+        <div class="auth-card">
+            <div class="brand" style="justify-content: center; margin-bottom: 2rem;">
+                <div class="brand-icon">🎓</div>
+                <div class="brand-name">Uni<span>Plan</span></div>
+            </div>
+            <h2 id="auth-title">Bem-vindo, Grupo!</h2>
+            <p style="color: var(--text-muted); margin-bottom: 24px;">Faça login para acessar o planner do projeto.</p>
+
+            <form id="auth-form" style="text-align: left;">
+                <div class="form-group">
+                    <label>Seu Nome / RM</label>
+                    <input type="text" id="user-id" placeholder="Ex: Josué" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha do Grupo</label>
+                    <input type="password" id="group-pass" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-primary"
+                    style="width: 100%; justify-content: center; margin-top: 10px;">
+                    Entrar no Dashboard
+                </button>
+            </form>
+            <p style="margin-top: 20px; font-size: 0.85rem; color: var(--text-muted);">
+                Acesse com a conta compartilhada do seu grupo.
+            </p>
         </div>
+    </div>
 
-        <nav class="nav-links">
-            <a href="#" class="nav-link active"><i>🏠</i> Dashboard</a>
-            <a href="#" class="nav-link"><i>📅</i> Calendário</a>
-            <a href="#" class="nav-link"><i>📊</i> Estatísticas</a>
-            <a href="#" class="nav-link"><i>⚙️</i> Configurações</a>
-        </nav>
-
-        <div class="sidebar-footer" style="margin-top: auto; color: var(--text-muted); font-size: 0.8rem;">
-            V 1.0.0
-        </div>
-    </aside>
-
-    <main class="main">
-        <header class="header">
-            <div class="welcome-msg">
-                <h1>Olá, Vinícius</h1>
-                <p>Você tem <span id="pending-count">0</span> trabalhos pendentes para hoje.</p>
+    <!-- Main App UI (Hidden initially) -->
+    <div id="main-app" style="display: none; width: 100%;">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">🎓</div>
+                <div class="brand-name">Uni<span>Plan</span></div>
             </div>
-            <button class="btn-primary" id="btn-new-task">
-                <span>+</span> Novo Trabalho
-            </button>
-        </header>
 
-        <section class="dashboard-grid">
-            <div class="stat-card">
-                <span class="stat-label">Total de Trabalhos</span>
-                <div class="stat-value" id="stats-total">0</div>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Em Progresso</span>
-                <div class="stat-value" id="stats-progress">0</div>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Concluídos</span>
-                <div class="stat-value" id="stats-completed" style="color: var(--status-fluxo)">0</div>
-            </div>
-        </section>
+            <nav class="nav-links">
+                <a href="#" class="nav-link active"><i>📋</i> Quadro Kanban</a>
+                <a href="#" class="nav-link"><i>📅</i> Cronograma</a>
+                <a href="#" class="nav-link"><i>�</i> Equipe</a>
+                <a href="#" class="nav-link"><i>📁</i> Documentos</a>
+            </nav>
 
-        <section class="tasks-area">
-            <div class="tasks-container">
-                <div class="tasks-list-header">
-                    <h2>Trabalhos Recentes</h2>
-                    <div class="filter-group">
-                        <button class="filter-btn active" data-filter="all">Todos</button>
-                        <button class="filter-btn" data-filter="trabalho">Trabalhos</button>
-                        <button class="filter-btn" data-filter="faculdade">Faculdade</button>
+            <div class="sidebar-footer" style="margin-top: auto;">
+                <div class="user-profile"
+                    style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-glass); border-radius: var(--radius-md);">
+                    <div class="member-avatar" id="current-user-avatar">?</div>
+                    <div style="font-size: 0.85rem;">
+                        <p id="current-user-name" style="font-weight: 700;">Usuário</p>
+                        <p style="color: var(--text-muted); font-size: 0.75rem;">Membro do Grupo</p>
                     </div>
                 </div>
+                <button id="btn-logout"
+                    style="width: 100%; margin-top: 12px; background: transparent; border: 1px solid var(--border-glass); color: var(--status-urgente); padding: 8px; border-radius: 8px; cursor: pointer; font-size: 0.8rem;">Sair</button>
+            </div>
+        </aside>
 
-                <div id="tasks-list">
-                    <!-- Tasks will be injected here -->
+        <main class="main">
+            <header class="header">
+                <div class="welcome-msg">
+                    <h1>Planejador de Projeto</h1>
+                    <p>Status atual: <span style="color: var(--accent-primary); font-weight: 700;">Etapa de
+                            Desenvolvimento</span></p>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn-primary" id="btn-new-task">
+                        <span>+</span> Nova Tarefa
+                    </button>
+                </div>
+            </header>
+
+            <!-- Kanban Board -->
+            <div class="kanban-board">
+                <!-- Coluna 1: Backlog -->
+                <div class="kanban-column" id="col-backlog">
+                    <div class="column-header">
+                        <span class="column-title">Ideias / Backlog</span>
+                        <span class="badge">0</span>
+                    </div>
+                    <div class="task-list" id="list-backlog"></div>
+                </div>
+
+                <!-- Coluna 2: Fazendo -->
+                <div class="kanban-column" id="col-doing">
+                    <div class="column-header">
+                        <span class="column-title">Em Execução</span>
+                        <span class="badge"
+                            style="background: rgba(245, 158, 11, 0.2); color: var(--status-foco);">0</span>
+                    </div>
+                    <div class="task-list" id="list-doing"></div>
+                </div>
+
+                <!-- Coluna 3: Revisão -->
+                <div class="kanban-column" id="col-review">
+                    <div class="column-header">
+                        <span class="column-title">Revisão / QA</span>
+                        <span class="badge"
+                            style="background: rgba(139, 92, 246, 0.2); color: var(--accent-primary);">0</span>
+                    </div>
+                    <div class="task-list" id="list-review"></div>
+                </div>
+
+                <!-- Coluna 4: Pronto -->
+                <div class="kanban-column" id="col-done">
+                    <div class="column-header">
+                        <span class="column-title">Entregue</span>
+                        <span class="badge"
+                            style="background: rgba(16, 185, 129, 0.2); color: var(--status-fluxo);">0</span>
+                    </div>
+                    <div class="task-list" id="list-done"></div>
                 </div>
             </div>
+        </main>
+    </div>
 
-            <div class="upcoming-sidebar">
-                <div class="stat-card" style="margin-bottom: 24px;">
-                    <span class="stat-label">Foco do Dia</span>
-                    <p style="color: var(--text-dim); margin-top: 10px;">Complete suas 3 tarefas prioritárias para
-                        manter o ritmo.</p>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Modal for New Task -->
+    <!-- New Task Modal -->
     <div class="modal" id="task-modal">
         <div class="modal-content">
-            <h2 style="margin-bottom: 24px;">Novo Trabalho</h2>
+            <h2 style="margin-bottom: 24px;">Adicionar Tarefa ao Grupo</h2>
             <form id="task-form">
                 <div class="form-group">
-                    <label>Título do Trabalho</label>
-                    <input type="text" id="task-title" placeholder="Ex: Artigo de Inteligência Artificial" required>
+                    <label>Título da Tarefa</label>
+                    <input type="text" id="task-title" placeholder="Ex: Pesquisa de Referências" required>
                 </div>
                 <div class="form-group">
-                    <label>Categoria</label>
-                    <select id="task-category">
-                        <option value="faculdade">Faculdade</option>
-                        <option value="trabalho">Trabalho</option>
-                        <option value="pessoal">Pessoal</option>
+                    <label>Responsável</label>
+                    <select id="task-owner">
+                        <option value="Josue">Josué</option>
+                        <option value="Membro 2">Membro 2</option>
+                        <option value="Membro 3">Membro 3</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Prioridade</label>
+                    <label>Etapa / Prioridade</label>
                     <select id="task-priority">
-                        <option value="fluxo">Fluxo (Baixa)</option>
-                        <option value="foco">Foco (Média)</option>
-                        <option value="urgente">Fogo (Urgente)</option>
+                        <option value="fluxo">Rotina</option>
+                        <option value="foco">Importante</option>
+                        <option value="urgente">Crítico / Prazo</option>
                     </select>
-                </div>
-                <div class="form-group">
-                    <label>Data de Entrega</label>
-                    <input type="date" id="task-date" required>
                 </div>
                 <div style="display: flex; gap: 12px; margin-top: 24px;">
-                    <button type="submit" class="btn-primary" style="flex: 1; justify-content: center;">Criar</button>
+                    <button type="submit" class="btn-primary" style="flex: 1; justify-content: center;">Criar
+                        Tarefa</button>
                     <button type="button" class="btn-secondary" id="btn-close-modal"
                         style="padding: 12px 20px; background: transparent; border: 1px solid var(--border-glass); color: var(--text-dim); border-radius: var(--radius-sm); cursor: pointer;">Cancelar</button>
                 </div>
